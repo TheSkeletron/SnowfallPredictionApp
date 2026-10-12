@@ -1,0 +1,11 @@
+{
+  "name": "SnowfallPredictionApp",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.3"
+  }
+}

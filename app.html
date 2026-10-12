@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Snowfall Predictions</title>
+</head>
+<body>
+  <h1>Snowfall Predictions</h1>
+
+  <div id="year-display-container"></div>
+
+  <template id="year-display-template"> 
+        <div class="year-display">
+          <h2 class="year"></h2>
+            <h3 class="date"></h3>
+        </div>
+    </template>
+
+    <template id="prediction-display-template">
+        <div class="prediction-display">
+          <h4 class="name"></h4>
+            <p class="date"></p>
+              <button class="add-prediction-button" style="display: none;">
+                Add Prediction
+              </button>
+                  <input type="text" class="prediction-input" placeholder="Type something here..." style="display: none" required>
+        </div>
+    </template>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
