@@ -7,12 +7,28 @@ const yearDisplayContainer = document.getElementById('year-display-container');
 
 const predictionDisplayTemplate = document.getElementById('prediction-display-template');
 
-async function displayYear(item) {
-    const yearDisplay = document.importNode(yearDisplayTemplate.content, true);
-    const year = item.year;
+async function createPage() {
+    const { data, error } = await supabase
+        .from('years')
+        .select()
+    // .order('year', { ascending: true });
+
+    if (error) {
+        console.error('Supabase error:', error.message);
+    } else {
+        for (let i = 0; i < data.length; i++) {
+            await addYearDisplay(data[i]);
+        }
+    }
+}
+
+async function addYearDisplay(yearToAdd) {
+    const fragment = document.importNode(yearDisplayTemplate.content, true);
+    const yearDisplay = fragment.querySelector('.year-display');
+    const year = yearToAdd.year;
 
     yearDisplay.querySelector('.year').textContent = year;
-    yearDisplay.querySelector('.date').textContent = "Actual Date: " + item.first_measurable_snowfall;
+    yearDisplay.querySelector('.date').textContent = "Actual Date: " + yearToAdd.first_measurable_snowfall;
 
     const { data, error } = await supabase
         .from('predictions')
@@ -21,58 +37,78 @@ async function displayYear(item) {
     if (error) {
         console.error('Supabase error:', error.message);
     } else {
-        addPrediction(yearDisplay, data);
+        for (const prediction of data) {
+            const predictionDisplay = await addPredictionDisplay(prediction);
+            yearDisplay.appendChild(predictionDisplay);
+        }
     }
 
     yearDisplayContainer.appendChild(yearDisplay, year);
 }
 
-async function addPrediction(yearDisplay, data) {
-    for (const prediction of data) {
-        console.log(prediction);
-        const predictionDisplay = document.importNode(predictionDisplayTemplate.content, true);
+async function addPredictionDisplay(predictionData) {
+    const fragment = document.importNode(predictionDisplayTemplate.content, true);
+    const predictionDisplay = fragment.querySelector('.prediction-display');
 
-        predictionDisplay.querySelector('.name').textContent = prediction.name;
+    const name = predictionData.name;
+    predictionDisplay.querySelector('.name').textContent = name;
 
-        let predictionDateText;
-        const predictionDate = prediction.prediction;
-        if (predictionDate === null) {
-            predictionDateText = "No Prediction";
+    let predictionDateText;
+    const predictionDate = predictionData.prediction;
+    if (predictionDate === null) {
+        predictionDateText = "No Prediction";
 
-            const addPredictionButton = predictionDisplay.querySelector('.add-prediction-button');
-            const predictionInput = predictionDisplay.querySelector('.prediction-input');
+        const makePredictionButton = predictionDisplay.querySelector('.make-prediction-button');
+        const predictionInput = predictionDisplay.querySelector('.prediction-input');
 
-            addPredictionButton.style.display = "inline-block";
+        makePredictionButton.style.display = "inline-block";
+        predictionInput.style.display = "inline-block";
 
-            addPredictionButton.addEventListener('click', async () => { 
-                const isHidden = predictionInput.style.display === "none";
+        makePredictionButton.addEventListener('click', async () => {
+            makeNewPrediction(predictionDisplay, predictionData.year, name, predictionInput.value);
+        });
+    } else {
+        predictionDateText = "Predicted Date: " + predictionDate;
+    }
+    predictionDisplay.querySelector('.date').textContent = predictionDateText;
 
-                if (isHidden) {
-                    predictionInput.style.display = "inline-block";
-                } else {
-                    predictionInput.style.display = "none";
-                }
-            });
-        } else {
-            predictionDateText = "Predicted Date: " + predictionDate;
-        }
-        predictionDisplay.querySelector('.date').textContent = predictionDateText;
+    return predictionDisplay;
+}
 
-        yearDisplay.querySelector('.year-display').appendChild(predictionDisplay);
+async function makeNewPrediction(predictionDisplay, year, name, predictionDate) {
+    const today = new Date().toLocaleDateString('en-CA');
+    const diffInDays = Math.round(
+        Math.abs(new Date(predictionDate) - new Date(today)) / 86400000
+    );
+
+    console.log(diffInDays);
+
+    if (predictionDate === null || diffInDays <= 0 || diffInDays > 200)
+    {
+        return;
+        // Add way to convey error message
+    }
+
+    const { data, error } = await supabase
+        .from('predictions')
+        .update({ prediction: predictionDate })
+        .eq('year', year)
+        .eq('name', name)
+        .select()
+
+    if (error) {
+        console.error('Supabase error:', error.message);
+    } else {
+        console.log('Prediction added:', data);
+
+        const makePredictionButton = predictionDisplay.querySelector('.make-prediction-button');
+        const predictionInput = predictionDisplay.querySelector('.prediction-input');
+
+        makePredictionButton.style.display = "none";
+        predictionInput.style.display = "none";
+
+        predictionDisplay.querySelector('.date').textContent = "Predicted Date: " + predictionDate;;
     }
 }
 
-const { data, error } = await supabase
-  .from('years')
-  .select()
-
-if (error) {
-  console.error('Supabase error:', error.message);
-} else {
-  console.log('Data:', data);
-  
-  data.forEach((item) => {
-    displayYear(item);
-  });
-}
-
+createPage();
