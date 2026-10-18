@@ -14,12 +14,13 @@ async function createPage() {
     const { data, error } = await supabase
         .from('years')
         .select()
-    //  .order('year', { ascending: true });
+        .order('year', { ascending : false });
 
     if (error) {
         console.error('Supabase error:', error.message);
     } else {
         for (let i = 0; i < data.length; i++) {
+            console.log(data[i].year);
             await addYearDisplay(data[i]);
         }
     }
@@ -96,6 +97,8 @@ async function getPredictionsDataForYear(year) {
         .from('predictions')
         .select()
         .eq('year', year)
+        .order('prediction', { ascending : true })
+        .order('id', {ascending : true})
 
     if (error) {
         console.error('Supabase error:', error.message);
