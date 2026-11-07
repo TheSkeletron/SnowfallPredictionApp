@@ -2,6 +2,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabase = createClient('https://mqxnnixvqdvnvylydvwk.supabase.co', 'sb_publishable_ZB3bRVzFlmnpA-bbOcrtxQ_R4cQHHJT');
 
+const tabSelectorTemplate = document.getElementById('tab-selector-template');
+const tabSelectorContainer = document.getElementById('tab-selector-container');
+
 const yearDisplayTemplate = document.getElementById('year-display-template');
 const yearDisplayContainer = document.getElementById('year-display-container');
 
@@ -14,16 +17,44 @@ async function createPage() {
     const { data, error } = await supabase
         .from('years')
         .select()
-        .order('year', { ascending : false });
+        .order('year', { ascending: false });
 
     if (error) {
         console.error('Supabase error:', error.message);
     } else {
         for (let i = 0; i < data.length; i++) {
-            console.log(data[i].year);
-            await addYearDisplay(data[i]);
+            await addTabSelector(data[i].year);
+
+            const yearDisplay = await addYearDisplay(data[i]);
+
+            if (i > 0) {
+                yearDisplay.style.display = "none";
+            }
         }
     }
+}
+
+async function addTabSelector(year) {
+    const fragment = document.importNode(tabSelectorTemplate.content, true);
+    const tabSelector = fragment.querySelector('.tab-selector');
+
+    const button = tabSelector.querySelector('.tab-selector-button')
+    button.textContent = year;
+
+    tabSelector.style.display = "block";
+
+    button.addEventListener('click', async () => {
+        showYearDisplay(year);
+    });
+
+    tabSelectorContainer.appendChild(tabSelector);
+}
+
+async function showYearDisplay(year) {
+    for (const [key, value] of yearDisplaysMap) {
+        value.style.display = "none";
+    }
+    yearDisplaysMap.get(year).style.display = "block";
 }
 
 async function addYearDisplay(yearToAdd) {
@@ -39,11 +70,13 @@ async function addYearDisplay(yearToAdd) {
     await addPredictionDisplays(year);
 
     yearDisplayContainer.appendChild(yearDisplay, year);
+
+    return yearDisplay;
 }
 
 async function addPredictionDisplays(year) {
     const yearData = await getPredictionsDataForYear(year);
-    
+
     for (const predictionData of yearData) {
         const fragment = document.importNode(predictionDisplayTemplate.content, true);
         const predictionDisplay = fragment.querySelector('.prediction-display');
@@ -97,8 +130,8 @@ async function getPredictionsDataForYear(year) {
         .from('predictions')
         .select()
         .eq('year', year)
-        .order('prediction', { ascending : true })
-        .order('id', {ascending : true})
+        .order('prediction', { ascending: true })
+        .order('id', { ascending: true })
 
     if (error) {
         console.error('Supabase error:', error.message);
@@ -110,7 +143,7 @@ async function getPredictionsDataForYear(year) {
 
 async function updatePredictionDisplays(year) {
     const yearData = await getPredictionsDataForYear(year);
-    
+
     let allPredictionsMade = true;
     for (const predictionData of yearData) {
         if (predictionData.prediction === null) {
@@ -129,8 +162,8 @@ async function updatePredictionDisplays(year) {
         if (predictionDate === null) {
             predictionDateText = "No Prediction";
 
-            makePredictionButton.style.display = "inline-block"
-            predictionInput.style.display = "inline-block";
+            makePredictionButton.style.display = "block"
+            predictionInput.style.display = "block";
         } else {
             if (allPredictionsMade) {
                 predictionDateText = "Predicted Date: " + predictionDate;
@@ -158,7 +191,7 @@ function getPredictionDisplay(name, year) {
 }
 
 function setPredictionDisplay(name, year, predictionDisplay) {
-    predictionDisplaysMap.set(getComposite(name ,year), predictionDisplay);
+    predictionDisplaysMap.set(getComposite(name, year), predictionDisplay);
 }
 function getComposite(name, year) {
     return `${name}_${year}`;
