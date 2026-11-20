@@ -4,13 +4,13 @@ const supabase = createClient('https://mqxnnixvqdvnvylydvwk.supabase.co', 'sb_pu
 
 const tabSelectorTemplate = document.getElementById('tab-selector-template');
 const tabSelectorContainer = document.getElementById('tab-selector-container');
+const tabDisplaysMap = new Map();
 
 const yearDisplayTemplate = document.getElementById('year-display-template');
 const yearDisplayContainer = document.getElementById('year-display-container');
 
 const predictionDisplayTemplate = document.getElementById('prediction-display-template');
 
-const yearDisplaysMap = new Map();
 const predictionDisplaysMap = new Map();
 
 async function createPage() {
@@ -23,38 +23,11 @@ async function createPage() {
         console.error('Supabase error:', error.message);
     } else {
         for (let i = 0; i < data.length; i++) {
-            await addTabSelector(data[i].year);
-
-            const yearDisplay = await addYearDisplay(data[i]);
-
-            if (i > 0) {
-                yearDisplay.style.display = "none";
-            }
+            await addYearDisplay(data[i]);
         }
+
+        showTab(data[0].year);
     }
-}
-
-async function addTabSelector(year) {
-    const fragment = document.importNode(tabSelectorTemplate.content, true);
-    const tabSelector = fragment.querySelector('.tab-selector');
-
-    const button = tabSelector.querySelector('.tab-selector-button')
-    button.textContent = year;
-
-    tabSelector.style.display = "block";
-
-    button.addEventListener('click', async () => {
-        showYearDisplay(year);
-    });
-
-    tabSelectorContainer.appendChild(tabSelector);
-}
-
-async function showYearDisplay(year) {
-    for (const [key, value] of yearDisplaysMap) {
-        value.style.display = "none";
-    }
-    yearDisplaysMap.get(year).style.display = "block";
 }
 
 async function addYearDisplay(yearToAdd) {
@@ -62,7 +35,7 @@ async function addYearDisplay(yearToAdd) {
     const yearDisplay = fragment.querySelector('.year-display');
     const year = yearToAdd.year;
 
-    setYearDisplay(year, yearDisplay);
+    await addTab(year, yearDisplay);
 
     yearDisplay.querySelector('.year').textContent = year;
     yearDisplay.querySelector('.date').textContent = "Actual Date: " + yearToAdd.first_measurable_snowfall;
@@ -97,6 +70,37 @@ async function addPredictionDisplays(year) {
     }
 
     updatePredictionDisplays(year);
+}
+
+async function addTab(tabName, tabContent) {
+    if (tabDisplaysMap.has(tabName.toString())) {
+        throw new Error("Tab already exists with name: " + tabName);
+    }
+
+    const fragment = document.importNode(tabSelectorTemplate.content, true);
+    const tabSelector = fragment.querySelector('.tab-selector');
+
+    const button = tabSelector.querySelector('.tab-selector-button')
+    button.textContent = tabName;
+
+    tabSelector.style.display = "block";
+
+    addTabToMap(tabName, tabContent);
+
+    button.addEventListener('click', async () => {
+        showTab(tabName);
+    });
+
+    tabSelectorContainer.appendChild(tabSelector);
+
+    tabContent.style.display = "none";
+}
+
+async function showTab(tabName) {
+    for (const [key, value] of tabDisplaysMap) {
+        value.style.display = "none";
+    }
+    getTab(tabName).style.display = "block";
 }
 
 async function makeNewPrediction(year, name, predictionDate) {
@@ -178,12 +182,16 @@ async function updatePredictionDisplays(year) {
     }
 }
 
-function getYearDisplay(year) {
-    return yearDisplaysMap.get(year);
+function addTabToMap(tabName, tabContent) {
+    tabDisplaysMap.set(tabName.toString(), tabContent);
 }
 
-function setYearDisplay(year, yearDisplay) {
-    yearDisplaysMap.set(year, yearDisplay);
+function getTab(tabName) {
+    return tabDisplaysMap.get(tabName.toString());
+}
+
+function getYearDisplay(year) {
+    return tabDisplaysMap.get(year.toString());
 }
 
 function getPredictionDisplay(name, year) {
