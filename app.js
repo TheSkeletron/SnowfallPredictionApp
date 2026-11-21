@@ -2,14 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const supabase = createClient('https://mqxnnixvqdvnvylydvwk.supabase.co', 'sb_publishable_ZB3bRVzFlmnpA-bbOcrtxQ_R4cQHHJT');
 
-const tabSelectorTemplate = document.getElementById('tab-selector-template');
-const tabSelectorContainer = document.getElementById('tab-selector-container');
 const tabDisplaysMap = new Map();
-
-const yearDisplayTemplate = document.getElementById('year-display-template');
-const yearDisplayContainer = document.getElementById('year-display-container');
-
-const predictionDisplayTemplate = document.getElementById('prediction-display-template');
 
 const predictionDisplaysMap = new Map();
 
@@ -26,11 +19,20 @@ async function createPage() {
             await addYearDisplay(data[i]);
         }
 
+        await createStatsDisplay();
+
         showTab(data[0].year);
     }
 }
 
+async function createStatsDisplay() {
+    const statsDisplay = document.getElementById('stats-display');
+
+    addTab("Statistics", statsDisplay);
+}
+
 async function addYearDisplay(yearToAdd) {
+    const yearDisplayTemplate = document.getElementById('year-display-template');
     const fragment = document.importNode(yearDisplayTemplate.content, true);
     const yearDisplay = fragment.querySelector('.year-display');
     const year = yearToAdd.year;
@@ -42,7 +44,7 @@ async function addYearDisplay(yearToAdd) {
 
     await addPredictionDisplays(year);
 
-    yearDisplayContainer.appendChild(yearDisplay, year);
+    document.getElementById('year-display-container').appendChild(yearDisplay, year);
 
     return yearDisplay;
 }
@@ -51,6 +53,7 @@ async function addPredictionDisplays(year) {
     const yearData = await getPredictionsDataForYear(year);
 
     for (const predictionData of yearData) {
+        const predictionDisplayTemplate = document.getElementById('prediction-display-template');
         const fragment = document.importNode(predictionDisplayTemplate.content, true);
         const predictionDisplay = fragment.querySelector('.prediction-display');
         const name = predictionData.name;
@@ -77,6 +80,7 @@ async function addTab(tabName, tabContent) {
         throw new Error("Tab already exists with name: " + tabName);
     }
 
+    const tabSelectorTemplate = document.getElementById('tab-selector-template');
     const fragment = document.importNode(tabSelectorTemplate.content, true);
     const tabSelector = fragment.querySelector('.tab-selector');
 
@@ -91,7 +95,7 @@ async function addTab(tabName, tabContent) {
         showTab(tabName);
     });
 
-    tabSelectorContainer.appendChild(tabSelector);
+    document.getElementById('tab-selector-container').appendChild(tabSelector);
 
     tabContent.style.display = "none";
 }
