@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
 const supabase = createClient('https://mqxnnixvqdvnvylydvwk.supabase.co', 'sb_publishable_ZB3bRVzFlmnpA-bbOcrtxQ_R4cQHHJT');
+
+import { Calendar } from 'https://esm.sh/fullcalendar@6.1.19';
 
 const tabDisplaysMap = new Map();
 
@@ -54,18 +55,21 @@ async function addYearDisplay(yearToAdd) {
 
     const year = yearToAdd.year;
 
-    // Create a new tab with key year and content yearDisplay
-    await addTab(year, yearDisplay);
-
     // Set year display text
     yearDisplay.querySelector('.year').textContent = year;
     yearDisplay.querySelector('.date').textContent = "Actual Date: " + yearToAdd.first_measurable_snowfall;
 
+    // Add new year display to container
+    document.getElementById('year-display-container').appendChild(yearDisplay, year);
+
+    // Create a new tab with key year and content yearDisplay
+    await addTab(year, yearDisplay);
+
     // Create prediction displays to be included in year display
     await addPredictionDisplays(year);
 
-    // Add new year display to container
-    document.getElementById('year-display-container').appendChild(yearDisplay, year);
+    // Create calendar
+    await addCalendar(year);
 }
 
 /**
@@ -86,9 +90,6 @@ async function addPredictionDisplays(year) {
 
         const name = predictionData.name;
 
-        // Registers new prediction display into map
-        setPredictionDisplay(name, year, predictionDisplay);
-
         // Set prediction display text
         predictionDisplay.querySelector('.name').textContent = name;
 
@@ -102,6 +103,9 @@ async function addPredictionDisplays(year) {
 
         // Append new prediction display to year
         getYearDisplay(year).appendChild(predictionDisplay);
+
+        // Registers new prediction display into map
+        setPredictionDisplay(name, year, predictionDisplay);
     }
 
     updatePredictionDisplays(year);
@@ -138,9 +142,6 @@ async function addTab(tabName, tabContent) {
 
     // Add new tab selector to container 
     document.getElementById('tab-selector-container').appendChild(tabSelector);
-
-    // Tab content is hidden when initialized
-    tabContent.style.display = "none";
 }
 
 /**
@@ -153,8 +154,28 @@ async function showTab(tabName) {
     for (const [key, value] of tabDisplaysMap) {
         value.style.display = "none";
     }
-    // Display only tab with given name
-    getTab(tabName).style.display = "block";
+
+    const yearDisplay = getTab(tabName);
+
+    yearDisplay.style.display = "block";
+}
+
+async function addCalendar(year) {
+    const yearDisplay = getYearDisplay(year);
+
+    const calendarElement = yearDisplay.querySelector('#calendar');
+
+    const calendar = new Calendar(calendarElement, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: ''
+        },
+        height: 'auto'
+    });
+
+    calendar.render();
 }
 
 /**
