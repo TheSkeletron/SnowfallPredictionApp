@@ -69,7 +69,7 @@ async function addYearDisplay(yearToAdd) {
     await addPredictionDisplays(year);
 
     // Create calendar
-    await addCalendar(year);
+    await addCalendar(year, yearToAdd.first_measurable_snowfall);
 }
 
 /**
@@ -160,24 +160,6 @@ async function showTab(tabName) {
     yearDisplay.style.display = "block";
 }
 
-async function addCalendar(year) {
-    const yearDisplay = getYearDisplay(year);
-
-    const calendarElement = yearDisplay.querySelector('#calendar');
-
-    const calendar = new Calendar(calendarElement, {
-        initialView: 'dayGridMonth',
-        headerToolbar: {
-            left: 'prev,next today',
-            center: 'title',
-            right: ''
-        },
-        height: 'auto'
-    });
-
-    calendar.render();
-}
-
 /**
  * Makes a new prediction and updates database.
  * 
@@ -212,6 +194,85 @@ async function makeNewPrediction(year, name, predictionDate) {
         // Update prediction displays to show new prediction
         updatePredictionDisplays(year);
     }
+
+    addCalendarPrediction(name, predictionDate, getCalendar(year));
+}
+
+/**
+ * Creates a calendar and adds it to year display.
+ * 
+ * @param {number} year - Year to add calendar for.
+ * @param {string} actualDate - Actual snowfall date.
+ */
+async function addCalendar(year, actualDate) {
+    console.log(actualDate);
+    // Create HTML references
+    const yearDisplay = getYearDisplay(year);
+    const calendarElement = yearDisplay.querySelector('#calendar');
+
+    const yearData = await getPredictionsDataForYear(year);
+    let startDate = new Date(yearData[0].prediction + 'T00:00:00');
+    let endDate = new Date(yearData[yearData.length - 1].prediction + 'T00:00:00');
+    const snowfallDate = new Date(actualDate + 'T00:00:00');
+
+    // Adjust bounds if actual snowfall date is outside
+    if (snowfallDate < startDate) {
+        startDate = snowfallDate;
+    }
+    if (snowfallDate > endDate) {
+        endDate = snowfallDate;
+    }
+
+    // Create new calendar
+    const calendar = new Calendar(calendarElement, {
+        initialView: 'dayGridMonth',
+        validRange: {
+            start: new Date(startDate.getFullYear(), startDate.getMonth(), 1),
+            end: new Date(endDate.getFullYear(), endDate.getMonth() + 1, 1)
+        },
+        headerToolbar: {
+            left: 'prev,next',
+            center: 'title',
+            right: ''
+        },
+        height: 'auto'
+    });
+
+    // Associate calendar with calendar element for later retrieval
+    calendarElement._fullCalendar = calendar;
+
+    for (const predictionData of yearData) {
+        addCalendarPrediction(predictionData.name, predictionData.prediction, calendar);
+    }
+
+    if (actualDate != null) {
+        calendar.addEvent({
+            title: 'First Snowfall',
+            start: snowfallDate,
+            allDay: true
+        })
+    }
+
+    calendar.render();
+}
+
+/**
+ * Adds a new prediction to the calendar.
+ * 
+ * @param {string} name - Name of the person to add prediction for.
+ * @param {number} date - Date of prediction.
+ * @param {Calendar} calendar - Calendar to add prediction to.
+ */
+async function addCalendarPrediction(name, date, calendar) {
+    if (date === null) {
+        return;
+    }
+    
+    calendar.addEvent({
+        title: name,
+        start: date,
+        allDay: true
+    });
 }
 
 // Helper functions
@@ -350,6 +411,16 @@ function setPredictionDisplay(name, year, predictionDisplay) {
  */
 function getComposite(name, year) {
     return `${name}_${year}`;
+}
+
+/**
+ * Retrieves calendar corresponding to year.
+ * 
+ * @param {number} year - Year to search for calendar.
+ * @returns {Calendar} Calendar corresponding to given year.
+ */
+function getCalendar(year) {
+    return getYearDisplay(year).querySelector('#calendar')._fullCalendar;
 }
 
 createPage();
